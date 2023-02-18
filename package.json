@@ -1,6 +1,6 @@
 {
   "name": "dropsuit-qaio",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "DropSuit NLP - qaio function: A JavaScript and Node.js library for Searching Responses",
   "main": "index.js",
   "directories": {
