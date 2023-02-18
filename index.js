@@ -1,0 +1,585 @@
+//#region Info
+
+/**
+ * @file <h3>DropSuit</h3>
+ * <p>
+ *   DropSuit is a JavaScript(ES6) and Node.js(v14.x) module library
+ *   created by Lado Oniani that offers a diverse collection of functions
+ *   for natural language processing (NLP) and data manipulation.
+ *   It provides a curated collection of original and classic techniques and methods
+ *   for tasks such as text analysis, language understanding and generation,
+ *   as well as for data manipulation tasks. Additionally,
+ *   it includes unique tools and features for chatbot dialog flow logic
+ *   and other specific use cases.
+ *   The library is open-source and available under the Apache License 2.0.
+ *   Whether you're a researcher, developer, or data scientist,
+ *   DropSuit offers a range of tools to enhance your work,
+ *   with a focus on diversity and experimentation.
+ * </p>
+ * @author Lado Oniani
+ * {@link https://github.com/ladooniani GitHub}
+ * @see mailto:ladooniani@gmail.com
+ * @version 1.0.0
+ * @see https://github.com/ladooniani/DropSuit#readme
+ * @copyright 2016-2023 Lado Oniani - DropSuit. All Rights Reserved.
+ * @license Apache License 2.0
+ */
+
+//#endregion
+
+//#region  Constructor
+
+function Constructor(input, requests, responses, swa, dsout) {
+  this.input = input;
+  this.requests = requests;
+  this.responses = responses;
+  this.dsout = dsout;
+  this.swa = swa;
+}
+
+//#endregion
+
+//#region qaio (sync)
+
+/**
+ * @class
+ * @classdesc - qaio(null/string, 0-1, 0-1, 0-1) function -
+ * Searches for the highest occurrence of nouns or all words in patterns
+ * or pattern strings, with the intent processing option.
+ * Processes default object instance json key value\n(req_arr: requests), (res_arr: responses) array patterns.
+ * @param {string} input - Input sentence as a string, or keep NULL to process constructor 'input'.
+ * @param {number} intentCondition - Intent search option:
+ * (0) (input -> requests -> reponses), (1) (input -> reponses -> reponses).
+ * @param {number} typecond - Return type option:
+ * (0) Process nouns, (1) Process including stop words.
+ * @param {number} intentPatternType - Set intent type:
+ * (0) for the highest occurrence of input words in the sentence string
+ * or (1) for the highest occurrence in the pattern.
+ * Note: A number out of range returns a 0 option result.
+ * @returns {object} - apt() returns an answers pattern, rnd() returns a random string.
+ */
+
+Constructor.prototype.qaio = function (
+  input,
+  intentCondition,
+  typecond,
+  intentPatternType
+) {
+  input = objOrFncInp(input, this.input);
+  let out = qaio_f(
+    input,
+    intentCondition,
+    typecond,
+    intentPatternType,
+    this.requests,
+    this.responses,
+    this.swa,
+    this.dsout
+  );
+  return out;
+};
+
+//#endregion
+
+//#region qaio_async
+
+Constructor.prototype.qaio_async = async function (
+  input,
+  intentCondition,
+  typecond,
+  intentPatternType
+) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      input = objOrFncInp(input, this.input);
+      let output = qaio_f(
+        input,
+        intentCondition,
+        typecond,
+        intentPatternType,
+        this.requests,
+        this.responses,
+        this.swa,
+        this.dsout
+      );
+      resolve({
+        out: function () {
+          return output;
+        },
+      });
+      return out;
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+//#endregion
+
+//#region console data
+
+const getdt = require("./infodt.js");
+let fnctit = getdt.displayInfoData();
+const line = fnctit.line;
+var description = fnctit.descript;
+
+let typeofsearch, typeofintent, typeofpattern;
+
+//#endregion
+
+//#region qaio_f
+
+const dropsuit_clnstr = require("../dropsuit-clnstr/index.js");
+var ds_clnstr = new dropsuit_clnstr(null, false);
+
+const dropsuit_enoun = require("../dropsuit-enoun/index.js");
+let ds_enoun = new dropsuit_enoun(null, false);
+
+/**
+ * Searches for the highest occurrence of nouns or all words in patterns
+ * or pattern strings, with the intent processing option.
+ * @function
+ * @param {string} userInput - Input sentence as a string.
+ * @param {array} requests - Requests as an array.
+ * @param {array} responses - Responses as an array.
+ * @param {number} intentCondition - Intent search option:
+ * (0) (input -> requests -> reponses), (1) (input -> reponses -> reponses).
+ * @param {number} typecond - Return type option:
+ * (0) Process nouns, (1) Process including stop words.
+ * @param {number} intentPatternType - Set intent type:
+ * (0) for the highest occurrence of input words in the sentence string
+ * or (1) for the highest occurrence in the pattern.
+ * @param {boolean} dispout - (true/false) Display processing output results in terminal.
+ * @returns {object} - apt() returns an answers pattern, rnd() returns a random string.
+ * @example qaio_f(string, array, array, integer, integer, integer, integer, bool)
+ */
+
+function qaio_f(
+  userInput,
+  intentCondition,
+  typecond,
+  intentPatterType,
+  requests,
+  responses,
+  swa,
+  dispout
+) {
+  let mutabArr = [];
+  intentCondition = checkType(intentCondition, 1);
+  typecond = checkType(typecond, 1);
+  intentPatterType = checkType(intentPatterType, 1);
+  userInput = ds_clnstr.clnstr(userInput).txt();
+  if (intentCondition == 0) {
+    mutabArr = requests;
+  } else if (intentCondition == 1) {
+    mutabArr = responses;
+  }
+  var inputnouns = [];
+  if (typecond == 0) {
+    inputnouns = ds_enoun.enoun(userInput, swa).noun();
+  } else if (typecond == 1) {
+    inputnouns = userInput.split(" ");
+  }
+
+  for (l = 0; l < mutabArr.length; l++) {
+    let reqs = mutabArr[l];
+    for (u = 0; u < reqs.length; u++) {
+      let request = reqs[u];
+      request = ds_clnstr.clnstr(request).txt();
+      if (intentPatterType == 0) {
+        dernoun_subf1pattern_string(l, inputnouns, request, typecond, swa);
+      } else if (intentPatterType == 1) {
+        var out = dernoun_subf1pattern(
+          l,
+          inputnouns,
+          request,
+          typecond,
+          dispout
+        );
+      }
+    }
+  }
+
+  if (intentPatterType == 0) {
+    let higherScoreRespAnswer = dernoun_subf2pattern_string(
+      mutabArr,
+      responses,
+      userInput,
+      intentCondition,
+      typecond,
+      intentPatterType,
+      dispout
+    );
+    return higherScoreRespAnswer;
+  } else if (intentPatterType == 1) {
+    let scoreValues = out[0]; /// let listToDisplay = out[1];
+    let higherScoreRespAnswer = dernoun_subf2pattern(
+      scoreValues,
+      mutabArr,
+      responses,
+      userInput,
+      intentCondition,
+      typecond,
+      intentPatterType,
+      dispout
+    );
+    return higherScoreRespAnswer;
+  }
+  cleanarr_1();
+}
+
+let valuesArr = [];
+let occurArr = [];
+function cleanarr_2() {
+  valuesArr = [];
+  occurArr = [];
+}
+
+function dernoun_subf1pattern_string(
+  value,
+  inputnouns,
+  requests,
+  typecond,
+  swa
+) {
+  var requestnouns = [];
+  if (typecond == 0) {
+    requestnouns = ds_enoun.enoun(requests, swa).noun();
+  } else if (typecond == 1) {
+    requestnouns = requests.split(" ");
+  }
+  var occurrence_count = 0;
+  for (n = 0; n < inputnouns.length; n++) {
+    var innoun = ds_clnstr.clnstr(inputnouns[n]).txt();
+    for (r = 0; r < requestnouns.length; r++) {
+      var recnoun = ds_clnstr.clnstr(requestnouns[r]).txt();
+      if (innoun == recnoun) {
+        occurrence_count++;
+        occurArr.push(occurrence_count);
+        valuesArr.push(value);
+      }
+    }
+  }
+}
+
+function dernoun_subf2pattern_string(
+  mutabArr,
+  responses,
+  userInput,
+  intentCondition,
+  typecond,
+  intentPatterType,
+  dispout
+) {
+  const max = Math.max(...occurArr);
+  const indexOfHighOccurrenceVal = occurArr.indexOf(max);
+  let higherValue = valuesArr[indexOfHighOccurrenceVal];
+  let answers = responses[higherValue];
+  let fromRequests = mutabArr[higherValue];
+  answers = return_nsentOut(answers, dispout);
+
+  displayA0(typecond, intentCondition, intentPatterType); /// DISPLAY >>
+  displayA1(
+    dispout,
+    description,
+    higherValue,
+    intentCondition,
+    typeofsearch,
+    typeofintent,
+    typeofpattern,
+    fromRequests,
+    userInput,
+    answers
+  ); /// DISPLAY >>
+  cleanarr_2();
+  return answers;
+}
+
+let scorevaluesDisplayArr = [];
+let score = [];
+function cleanarr_1() {
+  scorevaluesDisplayArr = [];
+  score = [];
+}
+
+function dernoun_subf1pattern(value, inputnouns, requests, typecond, dispout) {
+  var requestnouns = [];
+  if (typecond == 0) {
+    requestnouns = ds_enoun.enoun(requests, swa).noun();
+  } else if (typecond == 1) {
+    requestnouns = requests.split(" ");
+  }
+  for (n = 0; n < inputnouns.length; n++) {
+    var innoun = ds_clnstr.clnstr(inputnouns[n]).txt();
+    for (r = 0; r < requestnouns.length; r++) {
+      var recnoun = ds_clnstr.clnstr(requestnouns[r]).txt();
+      if (innoun == recnoun) {
+        score.push(value);
+        scorevaluesDisplayArr.push([value, innoun, recnoun, requests]);
+      }
+    }
+  }
+  return [score, scorevaluesDisplayArr];
+}
+
+function dernoun_subf2pattern(
+  scoreValues,
+  requests,
+  responses,
+  userInput,
+  intentCondition,
+  typecond,
+  intentPatterType,
+  dispout
+) {
+  const count = {};
+  scoreValues.forEach((element) => {
+    count[element] = (count[element] || 0) + 1;
+  });
+  let uniqueValues = [...new Set(scoreValues)];
+  let uniqueValuesArr = [];
+  let OccurrenceScoreArr = [];
+  for (v = 0; v < uniqueValues.length; v++) {
+    var uv = parseInt(uniqueValues[v]);
+    let ocur = dernoun_occurrence(scoreValues, uv);
+    uniqueValuesArr.push(uniqueValues[v]);
+    OccurrenceScoreArr.push(ocur);
+    // var uniqVal = uniqueValues[v];
+  }
+  const max = Math.max(...OccurrenceScoreArr);
+  const indexHigherOccurrence = OccurrenceScoreArr.indexOf(max);
+  let indexHigherOccurrenceValue = OccurrenceScoreArr[indexHigherOccurrence];
+  let higherValue = uniqueValuesArr[indexHigherOccurrence];
+  let answers = responses[higherValue];
+  let fromRequests = requests[higherValue];
+  answers = return_nsentOut(answers, dispout);
+  displayA0(typecond, intentCondition, intentPatterType); /// DISPLAY >>
+  displayA2(
+    intentCondition,
+    dispout,
+    indexHigherOccurrenceValue,
+    higherValue,
+    typeofsearch,
+    typeofintent,
+    typeofpattern,
+    fromRequests,
+    userInput,
+    answers
+  ); /// DISPLAY >>
+
+  return answers;
+}
+
+function dernoun_occurrence(array, value) {
+  var count = 0;
+  array.forEach((v) => v === value && count++);
+  return count;
+}
+
+function return_nsentOut(answers, dispout) {
+  const nsentObj = {
+    answArr: answers,
+    rnd: function () {
+      let tres = tres_f(this.answArr, dispout);
+      return tres;
+    },
+    apt: function () {
+      return this.answArr;
+    },
+  };
+  return nsentObj;
+}
+
+function objOrFncInp(function_input, constructor_input) {
+  if (function_input !== "" && function_input !== null) {
+    function_input = function_input;
+  } else {
+    function_input = constructor_input;
+  }
+  return function_input;
+}
+
+function checkType(type, range) {
+  if (range == 1) {
+    if (type == 0 || type == 1) {
+      return type;
+    } else {
+      return (type = 0);
+    }
+  }
+  if (range == 2) {
+    if (type == 0 || type == 1 || type == 2) {
+      return type;
+    } else {
+      return (type = 0);
+    }
+  }
+}
+
+function arrStrChecker(inputdtwords) {
+  let isArray = arrChecker(inputdtwords);
+  var isString = stringChecker(inputdtwords);
+  if (isString == true) {
+    return "string";
+  } else if (isArray == true) {
+    return "array";
+  }
+}
+
+function arrChecker(array) {
+  const result = Array.isArray(array);
+  if (result) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function stringChecker(string) {
+  if (typeof string === "string") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function tres_f(input, dispout) {
+  var randirAnswer = "";
+  let aos = arrStrChecker(input);
+  if (aos == "array") {
+    let inputLength = input.length;
+    var randAnswerID = Math.floor(randomNumber(0, inputLength));
+    randirAnswer = input[randAnswerID];
+  } else if (aos == "string") {
+    randirAnswer = input;
+  }
+  displayK0(dispout, randirAnswer); /// DISPLAY >>
+
+  if (randirAnswer == "") {
+    randirAnswer = false;
+  }
+  return randirAnswer;
+}
+
+function randomNumber(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+//#endregion
+
+//#region - console log
+
+function displayA0(typecond, intentCondition, intentPatterType) {
+  if (typecond == 0) {
+    typeofsearch = "\n\nType of input: /NOUNS/";
+  } else if (typecond == 1) {
+    typeofsearch = "\n\nType of input: /WORDS/";
+  }
+  if (intentCondition == 0) {
+    typeofintent = "(input -> requests -> responses)";
+  } else if (intentCondition == 1) {
+    typeofintent = "(input -> responses -> responses)";
+  }
+
+  if (intentPatterType == 0) {
+    typeofpattern = "0 </PATTERN/STRING>";
+  } else if (intentPatterType == 1) {
+    typeofpattern = "1 </PATTERN>";
+  }
+}
+
+function displayA1(
+  dispout,
+  description,
+  higherValue,
+  intentCondition,
+  typeofsearch,
+  typeofintent,
+  typeofpattern,
+  fromRequests,
+  userInput,
+  answers
+) {
+  if (dispout == true) {
+    console.log(
+      description,
+      "\nHigher occurence value: (",
+      higherValue,
+      ") from condition (",
+      intentCondition,
+      ")",
+      typeofsearch,
+      "\n\nIntent pattern:",
+      [typeofintent],
+      "\n\nIntent pattern type:",
+      typeofpattern,
+      "\n\nintent:\n\n",
+      fromRequests,
+      "\n\nInput sentence:\n\n",
+      [userInput],
+      "\n\nResponses answer output:\n\n",
+      answers,
+      "\n",
+      line
+    );
+  }
+}
+
+function displayA2(
+  intentCondition,
+  dispout,
+  indexHigherOccurrenceValue,
+  higherValue,
+  typeofsearch,
+  typeofintent,
+  typeofpattern,
+  fromRequests,
+  userInput,
+  answers
+) {
+  if (dispout == true) {
+    console.log(
+      description,
+      "\n\nHigher occurrence: [",
+      indexHigherOccurrenceValue,
+      "]\n\nValue: ",
+      [higherValue],
+      "\n\nFrom condition (",
+      intentCondition,
+      ")",
+      typeofsearch,
+      "\n\nIntent pattern:",
+      [typeofintent],
+      "\n\nIntent pattern type:",
+      typeofpattern,
+      "intent:\n\n",
+      fromRequests,
+      "\n\nInput sentence:\n\n",
+      userInput,
+      "\n\nResponses answer output:\n\n",
+      answers,
+      "\n",
+      line
+    );
+  }
+}
+
+function displayK0(dispout, randirAnswer) {
+  if (dispout == true) {
+    console.log(
+      description,
+      "\nRandom or direct answer: ",
+      [randirAnswer],
+      "\n",
+      line
+    );
+  }
+}
+
+//#endregion
+
+//#region Export Module Constructor
+
+module.exports = Constructor;
+
+//#endregion
